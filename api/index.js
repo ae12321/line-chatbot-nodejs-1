@@ -14,6 +14,9 @@ app.use(
 app.get("/", (req, res) => {
   res.sendStatus(200);
 });
+app.get("/test1", (req, res) => {
+  res.json({ token: TOKEN });
+});
 
 app.post("/webhook", function (req, res) {
   res.send("HTTP POST request sent to the webhook URL!");
