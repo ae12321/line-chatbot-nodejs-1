@@ -26,12 +26,12 @@ app.post("/webhook", function (req, res) {
       messages: [
         {
           type: "text",
-          text: JSON.stringify(req.body),
+          text: "Hello, user",
         },
-        // {
-        //   type: "text",
-        //   text: "May I help you?",
-        // },
+        {
+          type: "text",
+          text: "May I help you?",
+        },
       ],
     });
 
