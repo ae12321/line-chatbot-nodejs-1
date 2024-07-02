@@ -5,11 +5,7 @@ const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.LINE_ACCESS_TOKEN;
 
 app.use(express.json());
-app.use(
-  express.urlencoded({
-    extended: true,
-  })
-);
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
   res.sendStatus(200);
@@ -30,12 +26,12 @@ app.post("/webhook", function (req, res) {
       messages: [
         {
           type: "text",
-          text: "Hello, user",
+          text: JSON.stringify(req.body),
         },
-        {
-          type: "text",
-          text: "May I help you?",
-        },
+        // {
+        //   type: "text",
+        //   text: "May I help you?",
+        // },
       ],
     });
 
