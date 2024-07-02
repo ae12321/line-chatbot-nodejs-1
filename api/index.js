@@ -1,79 +1,50 @@
-const https = require("https");
-const express = require("express");
+import * as line from "@line/bot-sdk";
+import express from "express";
+
+// create LINE SDK config from env variables
+const config = {
+  channelSecret: process.env.CHANNEL_SECRET,
+};
+
+// create LINE SDK client
+const client = new line.messagingApi.MessagingApiClient({
+  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
+});
+
+// create Express app
+// about Express itself: https://expressjs.com/
 const app = express();
-const PORT = process.env.PORT || 3000;
-const TOKEN = process.env.LINE_ACCESS_TOKEN;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.get("/", (req, res) => {
-  res.sendStatus(200);
-});
-app.get("/test1", (req, res) => {
-  res.json({ token: TOKEN });
-});
-
-app.post("/webhook", function (req, res) {
-  res.send("HTTP POST request sent to the webhook URL!");
-  // ユーザーがボットにメッセージを送った場合、応答メッセージを送る
-  if (req.body.events[0].type === "message") {
-    // APIサーバーに送信する応答トークンとメッセージデータを文字列化する
-    const dataString = JSON.stringify({
-      // 応答トークンを定義
-      replyToken: req.body.events[0].replyToken,
-      // 返信するメッセージを定義
-      messages: [
-        {
-          type: "text",
-          text: "Hello, user",
-        },
-        {
-          type: "text",
-          text: "May I help you?",
-        },
-      ],
-    });
-
-    // リクエストヘッダー。仕様についてはMessaging APIリファレンスを参照してください。
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + TOKEN,
-    };
-
-    // Node.jsドキュメントのhttps.requestメソッドで定義されている仕様に従ったオプションを指定します。
-    const webhookOptions = {
-      hostname: "api.line.me",
-      path: "/v2/bot/message/reply",
-      method: "POST",
-      headers: headers,
-      body: dataString,
-    };
-
-    // messageタイプのHTTP POSTリクエストが/webhookエンドポイントに送信された場合、
-    // 変数webhookOptionsで定義したhttps://api.line.me/v2/bot/message/replyに対して
-    // HTTP POSTリクエストを送信します。
-
-    // リクエストの定義
-    const request = https.request(webhookOptions, (res) => {
-      res.on("data", (d) => {
-        process.stdout.write(d);
-      });
-    });
-
-    // エラーをハンドリング
-    // request.onは、APIサーバーへのリクエスト送信時に
-    // エラーが発生した場合にコールバックされる関数です。
-    request.on("error", (err) => {
+// register a webhook handler with middleware
+// about the middleware, please refer to doc
+app.post("/callback", line.middleware(config), (req, res) => {
+  Promise.all(req.body.events.map(handleEvent))
+    .then((result) => res.json(result))
+    .catch((err) => {
       console.error(err);
+      res.status(500).end();
     });
-
-    // 最後に、定義したリクエストを送信
-    request.write(dataString);
-    request.end();
-  }
 });
 
-app.listen(PORT, () => {
-  console.log(`Example app listening at http://localhost:${PORT}`);
+// event handler
+function handleEvent(event) {
+  if (event.type !== "message" || event.message.type !== "text") {
+    // ignore non-text-message event
+    return Promise.resolve(null);
+  }
+
+  // create an echoing text message
+  const echo = { type: "text", text: event.message.text };
+
+  // use reply API
+  return client.replyMessage({
+    replyToken: event.replyToken,
+    messages: [echo],
+  });
+}
+
+// listen on port
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`listening on ${port}`);
 });
